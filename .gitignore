@@ -1,0 +1,54 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.pyc
+*.pyd
+*.pyo
+*.egg-info/
+.pytest_cache/
+
+# Distributions and packaging
+.Python
+env/
+venv/
+lib/
+lib64/
+include/
+bin/
+share/
+*.egg
+*.whl
+dist/
+build/
+*.spec
+*.pyi
+
+# Django stuff:
+*.log
+*.pot
+*.mo
+*.prof
+db.sqlite3
+/media
+/static
+
+# IDEs and editors
+.idea/
+.vscode/
+*.swp
+*~
+.DS_Store
+
+# OS generated files
+.DS_Store
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Virtual environments
+.env
+
+# Crash logs
+*.stackdump
+
+# Docker
+docker-compose.yml.backup
