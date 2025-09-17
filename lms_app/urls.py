@@ -36,4 +36,11 @@ urlpatterns = [
     path('questions/<int:question_pk>/answers/create/', views.AnswerCreateView.as_view(), name='answer_create'),
     path('answers/<int:pk>/update/', views.AnswerUpdateView.as_view(), name='answer_update'),
     path('answers/<int:pk>/delete/', views.AnswerDeleteView.as_view(), name='answer_delete'),
+
+    # Enrollment and Progress URLs
+    path('courses/<int:course_pk>/enroll/', views.EnrollCourseView.as_view(), name='enroll_course'),
+    path('enrollments/', views.EnrollmentListView.as_view(), name='enrollment_list'),
+    path('lessons/<int:pk>/mark_completed/', views.MarkLessonCompletedView.as_view(), name='mark_lesson_completed'),
+    path('quiz/<int:pk>/take/', views.TakeQuizView.as_view(), name='take_quiz'),
+    path('quiz/attempt/<int:pk>/results/', views.QuizAttemptDetailView.as_view(), name='quiz_attempt_results'),
 ]

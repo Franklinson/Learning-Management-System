@@ -1,0 +1,27 @@
+{% extends "lms_app/base.html" %}
+
+{% block title %}My Enrollments{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>My Enrollments</h1>
+</div>
+
+{% if enrollments %}
+<div class="list-group">
+    {% for enrollment in enrollments %}
+    <div class="list-group-item d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="mb-1"><a href="{% url 'course_detail' pk=enrollment.course.pk %}">{{ enrollment.course.title }}</a></h5>
+            <small class="text-muted">Enrolled on: {{ enrollment.date_enrolled|date:"F j, Y" }}</small>
+        </div>
+        <div>
+            <a href="{% url 'course_detail' pk=enrollment.course.pk %}" class="btn btn-info btn-sm">View Course</a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<p>You are not currently enrolled in any courses. Explore <a href="{% url 'course_list' %}">available courses</a>!</p>
+{% endif %}
+{% endblock %}

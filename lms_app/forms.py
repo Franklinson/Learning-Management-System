@@ -30,3 +30,18 @@ class AnswerForm(forms.ModelForm):
         widgets = {
             'is_correct': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
+
+
+class TakeQuizForm(forms.Form):
+    def __init__(self, *args, **kwargs):
+        quiz = kwargs.pop('quiz')
+        super().__init__(*args, **kwargs)
+        self.quiz = quiz
+        for i, question in enumerate(quiz.questions.all()):
+            choices = [(str(answer.pk), answer.text) for answer in question.answers.all()]
+            self.fields[f'question_{question.pk}'] = forms.ChoiceField(
+                choices=choices,
+                widget=forms.RadioSelect,
+                label=question.text,
+                required=True
+            )

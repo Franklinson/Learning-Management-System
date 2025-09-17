@@ -1,0 +1,41 @@
+{% extends "lms_app/base.html" %}
+
+{% block title %}Take Quiz - {{ quiz.title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h1 class="card-title h3 mb-0">Take Quiz: {{ quiz.title }}</h1>
+                <p class="mb-0">Lesson: <a href="{% url 'lesson_detail' pk=lesson.pk %}" class="text-white text-decoration-underline">{{ lesson.title }}</a></p>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <div class="mb-4 p-3 border rounded">
+                            <h5 class="mb-3">{{ field.label }}</h5>
+                            {% for radio in field %}
+                                <div class="form-check">
+                                    {{ radio.tag }}
+                                    <label class="form-check-label" for="{{ radio.id_for_label }}">
+                                        {{ radio.choice_label }}
+                                    </label>
+                                </div>
+                            {% endfor %}
+                            {% for error in field.errors %}
+                                <div class="text-danger small mt-2">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endfor %}
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success btn-lg mt-3">Submit Quiz</button>
+                        <a href="{% url 'quiz_detail' pk=quiz.pk %}" class="btn btn-secondary mt-2">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
