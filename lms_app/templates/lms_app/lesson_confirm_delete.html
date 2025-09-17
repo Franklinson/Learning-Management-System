@@ -1,0 +1,26 @@
+{% extends "lms_app/base.html" %}
+
+{% block title %}Delete Lesson{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-sm border-danger">
+            <div class="card-header bg-danger text-white">
+                <h1 class="card-title h3 mb-0">Delete Lesson</h1>
+            </div>
+            <div class="card-body">
+                <p class="lead">Are you sure you want to delete the lesson "<strong>{{ lesson.title }}</strong>" from course "<strong>{{ lesson.course.title }}</strong>"?</p>
+                <p class="text-danger">This action cannot be undone.</p>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                        <button type="submit" class="btn btn-danger">Confirm Delete</button>
+                        <a href="{% url 'lesson_detail' pk=lesson.pk %}" class="btn btn-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

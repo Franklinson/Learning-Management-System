@@ -1,0 +1,37 @@
+{% extends "lms_app/base.html" %}
+
+{% block title %}Profile{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-info text-white">
+                <h1 class="card-title h3 mb-0">User Profile</h1>
+            </div>
+            <div class="card-body">
+                {% if user.is_authenticated %}
+                    <p class="lead"><strong>Username:</strong> {{ user.username }}</p>
+                    <p><strong>Email:</strong> {{ user.email }}</p>
+                    <p><strong>Role:</strong> {{ user.get_role_display }}</p>
+                    <p><strong>Date Joined:</strong> {{ user.date_joined|date:"F j, Y" }}</p>
+                    {% if user.role == 'instructor' %}
+                        <p><strong>Courses Taught:</strong> {{ user.courses_taught.count }}</p>
+                    {% endif %}
+                    {% if user.role == 'student' %}
+                        {# Future: Display enrolled courses and progress #}
+                        <p>Student specific information will be displayed here.</p>
+                    {% endif %}
+                    <div class="mt-4">
+                        <a href="{% url 'password_change' %}" class="btn btn-secondary me-2">Change Password</a>
+                        {# Add more profile editing options here if needed #}
+                    </div>
+                {% else %}
+                    <p class="text-danger">You are not logged in.</p>
+                    <a href="{% url 'login' %}" class="btn btn-primary">Login</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
