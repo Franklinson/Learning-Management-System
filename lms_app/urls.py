@@ -10,7 +10,7 @@ urlpatterns = [
 
     # Course URLs
     path('courses/', views.CourseListView.as_view(), name='course_list'),
-    path(\'courses/create/\', views.CourseCreateView.as_view(), name=\'course_create\'),
+    path('courses/create/', views.CourseCreateView.as_view(), name='course_create'),
     path('courses/<int:pk>/', views.CourseDetailView.as_view(), name='course_detail'),
     path('courses/<int:pk>/update/', views.CourseUpdateView.as_view(), name='course_update'),
     path('courses/<int:pk>/delete/', views.CourseDeleteView.as_view(), name='course_delete'),
@@ -20,4 +20,20 @@ urlpatterns = [
     path('lessons/<int:pk>/', views.LessonDetailView.as_view(), name='lesson_detail'),
     path('lessons/<int:pk>/update/', views.LessonUpdateView.as_view(), name='lesson_update'),
     path('lessons/<int:pk>/delete/', views.LessonDeleteView.as_view(), name='lesson_delete'),
+
+    # Quiz URLs
+    path('lessons/<int:lesson_pk>/quiz/create/', views.QuizCreateView.as_view(), name='quiz_create'),
+    path('quiz/<int:pk>/', views.QuizDetailView.as_view(), name='quiz_detail'),
+    path('quiz/<int:pk>/update/', views.QuizUpdateView.as_view(), name='quiz_update'),
+    path('quiz/<int:pk>/delete/', views.QuizDeleteView.as_view(), name='quiz_delete'),
+
+    # Question URLs
+    path('quiz/<int:quiz_pk>/questions/create/', views.QuestionCreateView.as_view(), name='question_create'),
+    path('questions/<int:pk>/update/', views.QuestionUpdateView.as_view(), name='question_update'),
+    path('questions/<int:pk>/delete/', views.QuestionDeleteView.as_view(), name='question_delete'),
+
+    # Answer URLs
+    path('questions/<int:question_pk>/answers/create/', views.AnswerCreateView.as_view(), name='answer_create'),
+    path('answers/<int:pk>/update/', views.AnswerUpdateView.as_view(), name='answer_update'),
+    path('answers/<int:pk>/delete/', views.AnswerDeleteView.as_view(), name='answer_delete'),
 ]

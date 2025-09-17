@@ -6,8 +6,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.shortcuts import get_object_or_404, render, redirect
 from django.http import HttpResponseForbidden
 from django.contrib import messages
-from .models import Course, Lesson, User
-from .forms import UserRegisterForm
+from .models import Course, Lesson, User, Quiz, Question, Answer
+from .forms import UserRegisterForm, QuizForm, QuestionForm, AnswerForm
 
 
 # Mixin for instructor or superuser access
@@ -35,18 +35,6 @@ class RegisterView(CreateView):
 
 def profile_view(request):
     return render(request, 'lms_app/profile.html')
-
-
-# Mixin for instructor or superuser access
-class InstructorOrSuperuserRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
-    def test_func(self):
-        return self.request.user.is_authenticated and (self.request.user.role == 'instructor' or self.request.user.is_superuser)
-
-    def handle_no_permission(self):
-        if not self.request.user.is_authenticated:
-            return super().handle_no_permission()  # Redirect to login
-        else:
-            return HttpResponseForbidden("You do not have permission to access this page.")
 
 
 # Course Views
@@ -168,3 +156,333 @@ class LessonDeleteView(InstructorOrSuperuserRequiredMixin, DeleteView):
         # Then, ensure they are the instructor of the course to which the lesson belongs, or a superuser
         lesson = self.get_object()
         return lesson.course.instructor == self.request.user or self.request.user.is_superuser
+
+
+# Quiz Views
+class QuizCreateView(InstructorOrSuperuserRequiredMixin, CreateView):
+    model = Quiz
+    form_class = QuizForm
+    template_name = 'lms_app/quiz_form.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        self.lesson = get_object_or_404(Lesson, pk=kwargs['lesson_pk'])
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        form.instance.lesson = self.lesson
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy('lesson_detail', kwargs={'pk': self.lesson.pk})
+
+    def test_func(self):
+        if not super().test_func():
+            return False
+        self.lesson = get_object_or_404(Lesson, pk=self.kwargs['lesson_pk'])
+        return self.lesson.course.instructor == self.request.user or self.request.user.is_superuser
+
+
+class QuizDetailView(LoginRequiredMixin, DetailView):
+    model = Quiz
+    template_name = 'lms_app/quiz_detail.html'
+    context_object_name = 'quiz'
+
+
+class QuizUpdateView(InstructorOrSuperuserRequiredMixin, UpdateView):
+    model = Quiz
+    form_class = QuizForm
+    template_name = 'lms_app/quiz_form.html'
+
+    def get_success_url(self):
+        return reverse_lazy('quiz_detail', kwargs={'pk': self.object.pk})
+
+    def test_func(self):
+        if not super().test_func():
+            return False
+        quiz = self.get_object()
+        return quiz.lesson.course.instructor == self.request.user or self.request.user.is_superuser
+
+
+class QuizDeleteView(InstructorOrSuperuserRequiredMixin, DeleteView):
+    model = Quiz
+    template_name = 'lms_app/quiz_confirm_delete.html'
+
+    def get_success_url(self):
+        return reverse_lazy('lesson_detail', kwargs={'pk': self.object.lesson.pk})
+
+    def test_func(self):
+        if not super().test_func():
+            return False
+        quiz = self.get_object()
+        return quiz.lesson.course.instructor == self.request.user or self.request.user.is_superuser
+
+
+# Question Views
+class QuestionCreateView(InstructorOrSuperuserRequiredMixin, CreateView):
+    model = Question
+    form_class = QuestionForm
+    template_name = 'lms_app/question_form.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        self.quiz = get_object_or_404(Quiz, pk=kwargs['quiz_pk'])
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        form.instance.quiz = self.quiz
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy('quiz_detail', kwargs={'pk': self.quiz.pk})
+
+    def test_func(self):
+        if not super().test_func():
+            return False
+        self.quiz = get_object_or_404(Quiz, pk=self.kwargs['quiz_pk'])
+        return self.quiz.lesson.course.instructor == self.request.user or self.request.user.is_superuser
+
+
+class QuestionUpdateView(InstructorOrSuperuserRequiredMixin, UpdateView):
+    model = Question
+    form_class = QuestionForm
+    template_name = 'lms_app/question_form.html'
+
+    def get_success_url(self):
+        return reverse_lazy('quiz_detail', kwargs={'pk': self.object.quiz.pk})
+
+    def test_func(self):
+        if not super().test_func():
+            return False
+        question = self.get_object()
+        return question.quiz.lesson.course.instructor == self.request.user or self.request.user.is_superuser
+
+
+class QuestionDeleteView(InstructorOrSuperuserRequiredMixin, DeleteView):
+    model = Question
+    template_name = 'lms_app/question_confirm_delete.html'
+
+    def get_success_url(self):
+        return reverse_lazy('quiz_detail', kwargs={'pk': self.object.quiz.pk})
+
+    def test_func(self):
+        if not super().test_func():
+            return False
+        question = self.get_object()
+        return question.quiz.lesson.course.instructor == self.request.user or self.request.user.is_superuser
+
+
+# Answer Views
+class AnswerCreateView(InstructorOrSuperuserRequiredMixin, CreateView):
+    model = Answer
+    form_class = AnswerForm
+    template_name = 'lms_app/answer_form.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        self.question = get_object_or_404(Question, pk=kwargs['question_pk'])
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        form.instance.question = self.question
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy('quiz_detail', kwargs={'pk': self.question.quiz.pk})
+
+    def test_func(self):
+        if not super().test_func():
+            return False
+        self.question = get_object_or_404(Question, pk=self.kwargs['question_pk'])
+        return self.question.quiz.lesson.course.instructor == self.request.user or self.request.user.is_superuser
+
+
+class AnswerUpdateView(InstructorOrSuperuserRequiredMixin, UpdateView):
+    model = Answer
+    form_class = AnswerForm
+    template_name = 'lms_app/answer_form.html'
+
+    def get_success_url(self):
+        return reverse_lazy('quiz_detail', kwargs={'pk': self.object.question.quiz.pk})
+
+    def test_func(self):
+        if not super().test_func():
+            return False
+        answer = self.get_object()
+        return answer.question.quiz.lesson.course.instructor == self.request.user or self.request.user.is_superuser
+
+
+class AnswerDeleteView(InstructorOrSuperuserRequiredMixin, DeleteView):
+    model = Answer
+    template_name = 'lms_app/answer_confirm_delete.html'
+
+    def get_success_url(self):
+        return reverse_lazy('quiz_detail', kwargs={'pk': self.object.question.quiz.pk})
+
+    def test_func(self):
+        if not super().test_func():
+            return False
+        answer = self.get_object()
+        return answer.question.quiz.lesson.course.instructor == self.request.user or self.request.user.is_superuser
+
+
+# Quiz Views
+class QuizCreateView(InstructorOrSuperuserRequiredMixin, CreateView):
+    model = Quiz
+    form_class = QuizForm
+    template_name = 'lms_app/quiz_form.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        self.lesson = get_object_or_404(Lesson, pk=kwargs['lesson_pk'])
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        form.instance.lesson = self.lesson
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy('lesson_detail', kwargs={'pk': self.lesson.pk})
+
+    def test_func(self):
+        if not super().test_func():
+            return False
+        self.lesson = get_object_or_404(Lesson, pk=self.kwargs['lesson_pk'])
+        return self.lesson.course.instructor == self.request.user or self.request.user.is_superuser
+
+
+class QuizDetailView(LoginRequiredMixin, DetailView):
+    model = Quiz
+    template_name = 'lms_app/quiz_detail.html'
+    context_object_name = 'quiz'
+
+
+class QuizUpdateView(InstructorOrSuperuserRequiredMixin, UpdateView):
+    model = Quiz
+    form_class = QuizForm
+    template_name = 'lms_app/quiz_form.html'
+
+    def get_success_url(self):
+        return reverse_lazy('quiz_detail', kwargs={'pk': self.object.pk})
+
+    def test_func(self):
+        if not super().test_func():
+            return False
+        quiz = self.get_object()
+        return quiz.lesson.course.instructor == self.request.user or self.request.user.is_superuser
+
+
+class QuizDeleteView(InstructorOrSuperuserRequiredMixin, DeleteView):
+    model = Quiz
+    template_name = 'lms_app/quiz_confirm_delete.html'
+
+    def get_success_url(self):
+        return reverse_lazy('lesson_detail', kwargs={'pk': self.object.lesson.pk})
+
+    def test_func(self):
+        if not super().test_func():
+            return False
+        quiz = self.get_object()
+        return quiz.lesson.course.instructor == self.request.user or self.request.user.is_superuser
+
+
+# Question Views
+class QuestionCreateView(InstructorOrSuperuserRequiredMixin, CreateView):
+    model = Question
+    form_class = QuestionForm
+    template_name = 'lms_app/question_form.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        self.quiz = get_object_or_404(Quiz, pk=kwargs['quiz_pk'])
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        form.instance.quiz = self.quiz
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy('quiz_detail', kwargs={'pk': self.quiz.pk})
+
+    def test_func(self):
+        if not super().test_func():
+            return False
+        self.quiz = get_object_or_404(Quiz, pk=self.kwargs['quiz_pk'])
+        return self.quiz.lesson.course.instructor == self.request.user or self.request.user.is_superuser
+
+
+class QuestionUpdateView(InstructorOrSuperuserRequiredMixin, UpdateView):
+    model = Question
+    form_class = QuestionForm
+    template_name = 'lms_app/question_form.html'
+
+    def get_success_url(self):
+        return reverse_lazy('quiz_detail', kwargs={'pk': self.object.quiz.pk})
+
+    def test_func(self):
+        if not super().test_func():
+            return False
+        question = self.get_object()
+        return question.quiz.lesson.course.instructor == self.request.user or self.request.user.is_superuser
+
+
+class QuestionDeleteView(InstructorOrSuperuserRequiredMixin, DeleteView):
+    model = Question
+    template_name = 'lms_app/question_confirm_delete.html'
+
+    def get_success_url(self):
+        return reverse_lazy('quiz_detail', kwargs={'pk': self.object.quiz.pk})
+
+    def test_func(self):
+        if not super().test_func():
+            return False
+        question = self.get_object()
+        return question.quiz.lesson.course.instructor == self.request.user or self.request.user.is_superuser
+
+
+# Answer Views
+class AnswerCreateView(InstructorOrSuperuserRequiredMixin, CreateView):
+    model = Answer
+    form_class = AnswerForm
+    template_name = 'lms_app/answer_form.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        self.question = get_object_or_404(Question, pk=kwargs['question_pk'])
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        form.instance.question = self.question
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy('quiz_detail', kwargs={'pk': self.question.quiz.pk})
+
+    def test_func(self):
+        if not super().test_func():
+            return False
+        self.question = get_object_or_404(Question, pk=self.kwargs['question_pk'])
+        return self.question.quiz.lesson.course.instructor == self.request.user or self.request.user.is_superuser
+
+
+class AnswerUpdateView(InstructorOrSuperuserRequiredMixin, UpdateView):
+    model = Answer
+    form_class = AnswerForm
+    template_name = 'lms_app/answer_form.html'
+
+    def get_success_url(self):
+        return reverse_lazy('quiz_detail', kwargs={'pk': self.object.question.quiz.pk})
+
+    def test_func(self):
+        if not super().test_func():
+            return False
+        answer = self.get_object()
+        return answer.question.quiz.lesson.course.instructor == self.request.user or self.request.user.is_superuser
+
+
+class AnswerDeleteView(InstructorOrSuperuserRequiredMixin, DeleteView):
+    model = Answer
+    template_name = 'lms_app/answer_confirm_delete.html'
+
+    def get_success_url(self):
+        return reverse_lazy('quiz_detail', kwargs={'pk': self.object.question.quiz.pk})
+
+    def test_func(self):
+        if not super().test_func():
+            return False
+        answer = self.get_object()
+        return answer.question.quiz.lesson.course.instructor == self.request.user or self.request.user.is_superuser

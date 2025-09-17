@@ -1,0 +1,50 @@
+{% extends "lms_app/base.html" %}
+
+{% block title %}
+    {% if form.instance.pk %}Edit Answer{% else %}Add Answer{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h1 class="card-title h3 mb-0">{% if form.instance.pk %}Edit Answer{% else %}Add New Answer to Question{% endif %}</h1>
+                {% if question %}
+                    <p class="mb-0">For question: "{{ question.text|truncatechars:100 }}"</p>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <div class="mb-3">
+                            {% if field.name == 'is_correct' %}
+                                <div class="form-check">
+                                    {{ field }}
+                                    <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                </div>
+                            {% else %}
+                                <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                                {{ field }}
+                            {% endif %}
+                            {% if field.help_text %}
+                                <div class="form-text">{{ field.help_text }}</div>
+                            {% endif %}
+                            {% for error in field.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endfor %}
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary mt-3">
+                            {% if form.instance.pk %}Update Answer{% else %}Create Answer{% endif %}
+                        </button>
+                        <a href="{% url 'quiz_detail' pk=question.quiz.pk %}" class="btn btn-secondary mt-2">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

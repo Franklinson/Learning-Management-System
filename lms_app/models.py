@@ -38,3 +38,28 @@ class Lesson(models.Model):
 
     def __str__(self):
         return f"{self.course.title} - {self.title}"
+
+
+class Quiz(models.Model):
+    lesson = models.OneToOneField(Lesson, on_delete=models.CASCADE, related_name="quiz")
+    title = models.CharField(max_length=200)
+
+    def __str__(self):
+        return f"Quiz for {self.lesson.title}"
+
+
+class Question(models.Model):
+    quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name="questions")
+    text = models.TextField()
+
+    def __str__(self):
+        return f"Q: {self.text[:50]}..."
+
+
+class Answer(models.Model):
+    question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name="answers")
+    text = models.CharField(max_length=255)
+    is_correct = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"A: {self.text[:50]}... ({'Correct' if self.is_correct else 'Incorrect'})"
