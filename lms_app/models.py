@@ -1,19 +1,16 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from .constants import USER_ROLES, STUDENT_ROLE
 
 class User(AbstractUser):
-    ROLE_CHOICES = (
-        ("student", "Student"),
-        ("instructor", "Instructor"),
-    )
-    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default="student")
+    role = models.CharField(max_length=10, choices=USER_ROLES, default=STUDENT_ROLE)
 
     def __str__(self):
         return f"{self.username} ({self.role})"
 
 
 class Course(models.Model):
-    title = models.CharField(max_length=200)
+    title = models.CharField(max_length=200, db_index=True)
     description = models.TextField()
     instructor = models.ForeignKey(
         User,
@@ -21,23 +18,39 @@ class Course(models.Model):
         related_name="courses_taught",
         limit_choices_to={"role": "instructor"},
     )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    objects = models.Manager()  # Default manager
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['title']),
+            models.Index(fields=['instructor']),
+        ]
 
     def __str__(self):
-        return self.title
+        return f"{self.title} (by {self.instructor.username})"
 
 
 class Lesson(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="lessons")
-    title = models.CharField(max_length=200)
+    title = models.CharField(max_length=200, db_index=True)
     content = models.TextField()
     order = models.IntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["order"]
         unique_together = ["course", "order"]
+        indexes = [
+            models.Index(fields=['course', 'order']),
+        ]
 
     def __str__(self):
-        return f"{self.course.title} - {self.title}"
+        return f"{self.order}. {self.title} ({self.course.title})"
 
 
 class Quiz(models.Model):
@@ -70,11 +83,18 @@ class Enrollment(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="enrollments")
     date_enrolled = models.DateTimeField(auto_now_add=True)
 
+    objects = models.Manager()  # Default manager
+    
     class Meta:
         unique_together = ["student", "course"]
+        ordering = ['-date_enrolled']
+        indexes = [
+            models.Index(fields=['student', 'course']),
+            models.Index(fields=['date_enrolled']),
+        ]
 
     def __str__(self):
-        return f"{self.student.username} enrolled in {self.course.title}"
+        return f"{self.student.username} → {self.course.title}"
 
 
 class LessonProgress(models.Model):
@@ -96,5 +116,20 @@ class QuizAttempt(models.Model):
     score = models.IntegerField(default=0)
     date_attempted = models.DateTimeField(auto_now_add=True)
 
+    objects = models.Manager()  # Default manager
+    
+    class Meta:
+        ordering = ['-date_attempted']
+        indexes = [
+            models.Index(fields=['student', 'quiz']),
+            models.Index(fields=['date_attempted']),
+        ]
+
     def __str__(self):
-        return f"{self.student.username}'s attempt on {self.quiz.title} (Score: {self.score})"
+        return f"{self.student.username} → {self.quiz.title} ({self.score}pts)"
+    
+    @property
+    def percentage_score(self):
+        """Calculate percentage score based on total questions."""
+        total_questions = self.quiz.questions.count()
+        return (self.score / total_questions * 100) if total_questions > 0 else 0

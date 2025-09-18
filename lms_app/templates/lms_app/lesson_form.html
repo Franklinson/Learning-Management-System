@@ -30,7 +30,7 @@
                         <button type="submit" class="btn btn-success mt-3">
                             {% if form.instance.pk %}Update Lesson{% else %}Create Lesson{% endif %}
                         </button>
-                        <a href="{% if form.instance.pk %}{% url 'lesson_detail' pk=form.instance.pk %}{% else %}{% url 'course_detail' pk=course.pk %}{% endif %}" class="btn btn-secondary mt-2">Cancel</a>
+                        <a href="{% if form.instance.pk %}{% url 'lesson_detail' pk=form.instance.pk %}{% else %}{% url 'course_detail' pk=view.course.pk %}{% endif %}" class="btn btn-secondary mt-2">Cancel</a>
                     </div>
                 </form>
             </div>

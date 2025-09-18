@@ -1,0 +1,47 @@
+<!-- Reusable lesson item component -->
+<div class="list-group-item d-flex justify-content-between align-items-start mb-2">
+    <div class="flex-grow-1">
+        <h5>
+            {{ lesson.order }}.
+            <a href="{% url 'lesson_detail' pk=lesson.pk %}">{{ lesson.title }}</a>
+        </h5>
+        <p class="mb-1 text-muted">{{ lesson.content|truncatechars:150 }}</p>
+        {% if user.is_authenticated and user.role == 'student' and is_enrolled %}
+            {% if lesson_progress|get_item:lesson.pk %}
+                <span class="badge bg-success">Completed</span>
+            {% else %}
+                <span class="badge bg-warning text-dark">In Progress</span>
+            {% endif %}
+        {% endif %}
+    </div>
+    <div class="ms-3 text-end">
+        {% if user.is_authenticated and user.role == 'student' and is_enrolled %}
+            <form action="{% url 'mark_lesson_completed' pk=lesson.pk %}" method="post" style="display: inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline-success me-2" 
+                        {% if lesson_progress|get_item:lesson.pk %}disabled{% endif %}>
+                    {% if lesson_progress|get_item:lesson.pk %}Completed{% else %}Mark Complete{% endif %}
+                </button>
+            </form>
+            {% if lesson.quiz %}
+                <a href="{% url 'take_quiz' pk=lesson.quiz.pk %}" 
+                   class="btn btn-sm btn-primary me-2 {% if not lesson_progress|get_item:lesson.pk %}disabled{% endif %}">
+                    Take Quiz
+                </a>
+            {% endif %}
+        {% endif %}
+        
+        <a href="{% url 'lesson_detail' pk=lesson.pk %}" class="btn btn-info btn-sm me-2">
+            View Lesson
+        </a>
+        
+        {% if course.instructor == user or user.is_superuser %}
+            <a href="{% url 'lesson_update' pk=lesson.pk %}" class="btn btn-warning btn-sm me-2">
+                Edit
+            </a>
+            <a href="{% url 'lesson_delete' pk=lesson.pk %}" class="btn btn-danger btn-sm">
+                Delete
+            </a>
+        {% endif %}
+    </div>
+</div>

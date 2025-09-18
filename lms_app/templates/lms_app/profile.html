@@ -1,5 +1,8 @@
-{% extends "lms_app/base.html" %} {% load lms_app_extras %} {% block title
-%}Profile{% endblock %} {% block content %}
+{% extends "lms_app/base.html" %}
+
+{% block title %}Profile{% endblock %}
+
+{% block content %}
 <div class="row justify-content-center">
     <div class="col-md-10 col-lg-8">
         <div class="card shadow-sm mb-4">
@@ -8,29 +11,10 @@
             </div>
             <div class="card-body">
                 {% if user.is_authenticated %}
-                <p class="lead">
-                    <strong>Username:</strong> {{ user.username }}
-                </p>
+                <p class="lead"><strong>Username:</strong> {{ user.username }}</p>
                 <p><strong>Email:</strong> {{ user.email }}</p>
-                <p>
-                    <strong>Role:</strong>
-                    <span class="badge bg-primary"
-                        >{{ user.get_role_display }}</span
-                    >
-                </p>
-                <p>
-                    <strong>Date Joined:</strong> {{ user.date_joined|date:"F j,
-                    Y" }}
-                </p>
-
-                <div class="mt-4">
-                    <a
-                        href="{% url 'password_change' %}"
-                        class="btn btn-secondary me-2"
-                        >Change Password</a
-                    >
-                    {# Add more profile editing options here if needed #}
-                </div>
+                <p><strong>Role:</strong> <span class="badge bg-primary">{{ user.get_role_display }}</span></p>
+                <p><strong>Date Joined:</strong> {{ user.date_joined|date:"F j, Y" }}</p>
                 {% else %}
                 <p class="text-danger">You are not logged in.</p>
                 <a href="{% url 'login' %}" class="btn btn-primary">Login</a>
@@ -38,113 +22,53 @@
             </div>
         </div>
 
-        {% if user.is_authenticated %} {% if user.role == 'instructor' %}
-        <div class="card shadow-sm mb-4">
-            <div class="card-header bg-success text-white">
-                <h2 class="h4 mb-0">My Courses (Taught)</h2>
+        {% if user.is_authenticated %}
+            {% if user.role == 'instructor' %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-success text-white">
+                    <h2 class="h4 mb-0">My Courses (Taught)</h2>
+                </div>
+                <div class="card-body">
+                    {% if user.courses_taught.all %}
+                    <ul class="list-group list-group-flush">
+                        {% for course in user.courses_taught.all %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <a href="{% url 'course_detail' pk=course.pk %}" class="fw-bold">{{ course.title }}</a>
+                            <span class="badge bg-info rounded-pill">{{ course.lessons.count }} Lessons</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p>You are not currently teaching any courses. <a href="{% url 'course_create' %}">Create one now!</a></p>
+                    {% endif %}
+                </div>
             </div>
-            <div class="card-body">
-                {% if user.courses_taught.all %}
-                <ul class="list-group list-group-flush">
-                    {% for course in user.courses_taught.all %}
-                    <li
-                        class="list-group-item d-flex justify-content-between align-items-center"
-                    >
-                        <a
-                            href="{% url 'course_detail' pk=course.pk %}"
-                            class="fw-bold"
-                            >{{ course.title }}</a
-                        >
-                        <span class="badge bg-info rounded-pill"
-                            >{{ course.lessons.count }} Lessons</span
-                        >
-                    </li>
-                    {% endfor %}
-                </ul>
-                {% else %}
-                <p>
-                    You are not currently teaching any courses.
-                    <a href="{% url 'course_create' %}">Create one now!</a>
-                </p>
-                {% endif %}
-            </div>
-        </div>
-        {% elif user.role == 'student' %}
-        <div class="card shadow-sm mb-4">
-            <div class="card-header bg-primary text-white">
-                <h2 class="h4 mb-0">My Enrolled Courses</h2>
-            </div>
-            <div class="card-body">
-                {% if user.enrollments.all %}
-                <ul class="list-group list-group-flush">
-                    {% for enrollment in user.enrollments.all %}
-                    <li class="list-group-item">
-                        <div
-                            class="d-flex justify-content-between align-items-center"
-                        >
-                            <h5 class="mb-1">
-                                <a
-                                    href="{% url 'course_detail' pk=enrollment.course.pk %}"
-                                    class="fw-bold"
-                                    >{{ enrollment.course.title }}</a
-                                >
-                            </h5>
-                            <span class="text-muted"
-                                >Enrolled: {{ enrollment.date_enrolled|date:"M
-                                d, Y" }}</span
-                            >
-                        </div>
-                        <div class="ms-3 mt-2">
-                            {% if enrollment.course.lessons.all %} {% with
-                            total_lessons=enrollment.course.lessons.count %} {%
-                            with
-                            completed_lessons=enrollment.lesson_progress.filter(completed=True).count
-                            %}
-                            <p class="mb-1">
-                                Progress: {{ completed_lessons }} / {{
-                                total_lessons }} lessons completed
-                            </p>
-                            {% if total_lessons > 0 %}
-                            <div class="progress mb-2" style="height: 10px">
-                                <div
-                                    class="progress-bar {% if completed_lessons == total_lessons %}bg-success{% else %}bg-info{% endif %}"
-                                    role="progressbar"
-                                    style="width: {{ completed_lessons|divisibleby:total_lessons|mul:100 }}%;"
-                                    aria-valuenow="{{ completed_lessons|divisibleby:total_lessons|mul:100 }}"
-                                    aria-valuemin="0"
-                                    aria-valuemax="100"
-                                ></div>
+            {% elif user.role == 'student' %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="h4 mb-0">My Enrolled Courses</h2>
+                </div>
+                <div class="card-body">
+                    {% if user.enrollments.all %}
+                    <ul class="list-group list-group-flush">
+                        {% for enrollment in user.enrollments.all %}
+                        <li class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-1">
+                                    <a href="{% url 'course_detail' pk=enrollment.course.pk %}" class="fw-bold">{{ enrollment.course.title }}</a>
+                                </h5>
+                                <span class="text-muted">Enrolled: {{ enrollment.date_enrolled|date:"M d, Y" }}</span>
                             </div>
-                            {% endif %} {% endwith %} {% endwith %} {% else %}
-                            <p class="text-muted">
-                                No lessons in this course yet.
-                            </p>
-                            {% endif %} {% with
-                            quiz_attempts=enrollment.student.quiz_attempts.filter(quiz__lesson__course=enrollment.course).order_by('-date_attempted')
-                            %} {% if quiz_attempts %}
-                            <p class="mb-1">
-                                Latest Quiz Score: {{ quiz_attempts.first.score
-                                }}
-                            </p>
-                            {% else %}
-                            <p class="text-muted">
-                                No quizzes attempted for this course yet.
-                            </p>
-                            {% endif %} {% endwith %}
-                        </div>
-                    </li>
-                    {% endfor %}
-                </ul>
-                {% else %}
-                <p>
-                    You are not currently enrolled in any courses.
-                    <a href="{% url 'course_list' %}">Browse courses</a> to get
-                    started!
-                </p>
-                {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p>You are not currently enrolled in any courses. <a href="{% url 'course_list' %}">Browse courses</a> to get started!</p>
+                    {% endif %}
+                </div>
             </div>
-        </div>
-        {% endif %} {% endif %}
+            {% endif %}
+        {% endif %}
     </div>
 </div>
 {% endblock %}

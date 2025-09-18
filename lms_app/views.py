@@ -2,27 +2,14 @@ from django.urls import reverse_lazy, reverse
 from django.views.generic import (
     CreateView, ListView, DetailView, UpdateView, DeleteView, View
 )
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404, render, redirect
-from django.http import HttpResponseForbidden
 from django.contrib import messages
-from django.utils import timezone
 
 from .models import Course, Lesson, User, Quiz, Question, Answer, Enrollment, LessonProgress, QuizAttempt
 from .forms import UserRegisterForm, QuizForm, QuestionForm, AnswerForm, TakeQuizForm
-
-
-# Mixin for instructor or superuser access
-class InstructorOrSuperuserRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
-    def test_func(self):
-        return self.request.user.is_authenticated and (self.request.user.role == 'instructor' or self.request.user.is_superuser)
-
-    def handle_no_permission(self):
-        if not self.request.user.is_authenticated:
-            return super().handle_no_permission()  # Redirect to login
-        else:
-            messages.error(self.request, "You do not have permission to access this page.")
-            return HttpResponseForbidden("You do not have permission to access this page.")
+from .mixins import InstructorOrSuperuserRequiredMixin, StudentRequiredMixin, CourseOwnerMixin
+from .services import EnrollmentService, LessonService, QuizService
 
 
 # User Authentication Views
@@ -85,7 +72,7 @@ class CourseDetailView(LoginRequiredMixin, DetailView):
         return context
 
 
-class CourseUpdateView(InstructorOrSuperuserRequiredMixin, UpdateView):
+class CourseUpdateView(InstructorOrSuperuserRequiredMixin, CourseOwnerMixin, UpdateView):
     model = Course
     fields = ['title', 'description']
     template_name = 'lms_app/course_form.html'
@@ -93,23 +80,11 @@ class CourseUpdateView(InstructorOrSuperuserRequiredMixin, UpdateView):
     def get_success_url(self):
         return reverse_lazy('course_detail', kwargs={'pk': self.object.pk})
 
-    def test_func(self):
-        if not super().test_func():
-            return False
-        course = self.get_object()
-        return course.instructor == self.request.user or self.request.user.is_superuser
 
-
-class CourseDeleteView(InstructorOrSuperuserRequiredMixin, DeleteView):
+class CourseDeleteView(InstructorOrSuperuserRequiredMixin, CourseOwnerMixin, DeleteView):
     model = Course
     template_name = 'lms_app/course_confirm_delete.html'
     success_url = reverse_lazy('course_list')
-
-    def test_func(self):
-        if not super().test_func():
-            return False
-        course = self.get_object()
-        return course.instructor == self.request.user or self.request.user.is_superuser
 
 
 # Lesson Views
@@ -419,21 +394,16 @@ class AnswerDeleteView(InstructorOrSuperuserRequiredMixin, DeleteView):
 
 
 # Student Enrollment and Progress Views
-class EnrollCourseView(LoginRequiredMixin, View):
+class EnrollCourseView(StudentRequiredMixin, View):
     def post(self, request, course_pk):
-        if request.user.role != 'student':
-            messages.error(request, "Only students can enroll in courses.")
-            return redirect(reverse_lazy('course_detail', kwargs={'pk': course_pk}))
-
         course = get_object_or_404(Course, pk=course_pk)
-
-        # Check if already enrolled
-        if Enrollment.objects.filter(student=request.user, course=course).exists():
+        enrollment, created = EnrollmentService.enroll_student(request.user, course)
+        
+        if created:
+            messages.success(request, f"Successfully enrolled in {course.title}!")
+        else:
             messages.info(request, f"You are already enrolled in {course.title}.")
-            return redirect(reverse_lazy('course_detail', kwargs={'pk': course_pk}))
-
-        Enrollment.objects.create(student=request.user, course=course)
-        messages.success(request, f"Successfully enrolled in {course.title}!")
+        
         return redirect(reverse_lazy('course_detail', kwargs={'pk': course_pk}))
 
 
@@ -451,32 +421,16 @@ class EnrollmentListView(LoginRequiredMixin, ListView):
         return Enrollment.objects.none() # Return empty queryset for non-students
 
 
-class MarkLessonCompletedView(LoginRequiredMixin, View):
+class MarkLessonCompletedView(StudentRequiredMixin, View):
     def post(self, request, pk):
-        if request.user.role != 'student':
-            messages.error(request, "Only students can mark lessons as completed.")
-            return redirect(reverse_lazy('lesson_detail', kwargs={'pk': pk}))
-
         lesson = get_object_or_404(Lesson, pk=pk)
-        enrollment = get_object_or_404(Enrollment, student=request.user, course=lesson.course)
-
-        lesson_progress, created = LessonProgress.objects.get_or_create(
-            enrollment=enrollment,
-            lesson=lesson,
-            defaults={'completed': True, 'date_completed': timezone.now()}
-        )
-        if not created:
-            # If it already exists, just update it to completed
-            if not lesson_progress.completed:
-                lesson_progress.completed = True
-                lesson_progress.date_completed = timezone.now()
-                lesson_progress.save()
-                messages.success(request, f"Lesson '{lesson.title}' marked as completed.")
-            else:
-                messages.info(request, f"Lesson '{lesson.title}' was already marked as completed.")
-        else:
+        lesson_progress, created = LessonService.mark_lesson_completed(request.user, lesson)
+        
+        if created or not lesson_progress.completed:
             messages.success(request, f"Lesson '{lesson.title}' marked as completed.")
-
+        else:
+            messages.info(request, f"Lesson '{lesson.title}' was already marked as completed.")
+        
         return redirect(reverse_lazy('lesson_detail', kwargs={'pk': pk}))
 
 
@@ -512,22 +466,9 @@ class TakeQuizView(LoginRequiredMixin, View):
     def post(self, request, pk):
         form = TakeQuizForm(request.POST, quiz=self.quiz)
         if form.is_valid():
-            score = 0
-            total_questions = self.quiz.questions.count()
-
-            for question in self.quiz.questions.all():
-                selected_answer_id = form.cleaned_data.get(f'question_{question.pk}')
-                if selected_answer_id:
-                    selected_answer = get_object_or_404(Answer, pk=selected_answer_id)
-                    if selected_answer.is_correct:
-                        score += 1
-
-            # Save the quiz attempt
-            quiz_attempt = QuizAttempt.objects.create(
-                student=request.user,
-                quiz=self.quiz,
-                score=score
-            )
+            score, total_questions = QuizService.calculate_quiz_score(self.quiz, form.cleaned_data)
+            quiz_attempt = QuizService.record_quiz_attempt(request.user, self.quiz, score)
+            
             messages.success(request, f"Quiz completed! Your score: {score}/{total_questions}.")
             return redirect(reverse_lazy('quiz_attempt_results', kwargs={'pk': quiz_attempt.pk}))
         else:

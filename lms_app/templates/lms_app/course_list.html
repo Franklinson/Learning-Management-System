@@ -6,7 +6,7 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1>All Courses</h1>
     {% if user.role == 'instructor' or user.is_superuser %}
-        <a href="{% url 'course_create' %}" class="btn btn-primary">Create New Course</a>
+    <a href="{% url 'course_create' %}" class="btn btn-primary">Create New Course</a>
     {% endif %}
 </div>
 
@@ -14,18 +14,7 @@
 <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
     {% for course in courses %}
     <div class="col">
-        <div class="card h-100">
-            <div class="card-body">
-                <h5 class="card-title">{{ course.title }}</h5>
-                <p class="card-text">{{ course.description|truncatechars:100 }}</p>
-                <p class="card-text"><small class="text-muted">Instructor: {{ course.instructor.username }}</small></p>
-                <a href="{% url 'course_detail' pk=course.pk %}" class="btn btn-info btn-sm">View Details</a>
-                {% if course.instructor == user or user.is_superuser %}
-                    <a href="{% url 'course_update' pk=course.pk %}" class="btn btn-warning btn-sm">Edit</a>
-                    <a href="{% url 'course_delete' pk=course.pk %}" class="btn btn-danger btn-sm">Delete</a>
-                {% endif %}
-            </div>
-        </div>
+        {% include 'lms_app/components/course_card.html' %}
     </div>
     {% endfor %}
 </div>

@@ -1,0 +1,21 @@
+<!-- Reusable authentication card component -->
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-{{ card_color|default:'primary' }} text-white">
+                <h1 class="card-title h3 mb-0">{{ card_title }}</h1>
+            </div>
+            <div class="card-body">
+                {{ form_content|safe }}
+                {% if footer_text and footer_link %}
+                <div class="text-center mt-3">
+                    <small class="text-muted">
+                        {{ footer_text }}
+                        <a href="{{ footer_link }}">{{ footer_link_text }}</a>
+                    </small>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
