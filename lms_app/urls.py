@@ -43,4 +43,5 @@ urlpatterns = [
     path('lessons/<int:pk>/mark_completed/', views.MarkLessonCompletedView.as_view(), name='mark_lesson_completed'),
     path('quiz/<int:pk>/take/', views.TakeQuizView.as_view(), name='take_quiz'),
     path('quiz/attempt/<int:pk>/results/', views.QuizAttemptDetailView.as_view(), name='quiz_attempt_results'),
+    path('dashboard/', views.ReportingDashboardView.as_view(), name='reporting_dashboard'),
 ]

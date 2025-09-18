@@ -558,3 +558,58 @@ class QuizAttemptDetailView(LoginRequiredMixin, DetailView):
         else:
             messages.error(self.request, "You do not have permission to view these quiz results.")
             return redirect(reverse_lazy('profile')) # Or some other appropriate redirect
+
+
+# Reporting Views
+class ReportingDashboardView(InstructorOrSuperuserRequiredMixin, ListView):
+    model = Course
+    template_name = 'lms_app/reporting_dashboard.html'
+    context_object_name = 'courses'
+
+    def get_queryset(self):
+        if self.request.user.is_superuser:
+            return Course.objects.all().order_by('title')
+        elif self.request.user.role == 'instructor':
+            return Course.objects.filter(instructor=self.request.user).order_by('title')
+        return Course.objects.none() # Should be caught by mixin, but good for safety
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        all_courses = context['courses'] # This is the filtered queryset from get_queryset
+
+        course_data = []
+        for course in all_courses:
+            total_students_enrolled = course.enrollments.filter(course=course).count()
+            lessons_in_course = course.lessons.count()
+
+            students_progress = []
+            for enrollment in course.enrollments.all():
+                student = enrollment.student
+                completed_lessons = LessonProgress.objects.filter(enrollment=enrollment, completed=True).count()
+
+                # Calculate quiz attempts and average score
+                quiz_attempts = QuizAttempt.objects.filter(student=student, quiz__lesson__course=course)
+                total_quiz_score = sum([attempt.score for attempt in quiz_attempts])
+
+                total_possible_quiz_score = 0
+                for lesson in course.lessons.all():
+                    if hasattr(lesson, 'quiz'):
+                        total_possible_quiz_score += lesson.quiz.questions.count() # Assuming 1 point per question
+
+                average_quiz_score = (total_quiz_score / total_possible_quiz_score) * 100 if total_possible_quiz_score > 0 else 0
+
+                students_progress.append({
+                    'student': student,
+                    'completed_lessons': completed_lessons,
+                    'total_lessons': lessons_in_course,
+                    'lesson_completion_percentage': (completed_lessons / lessons_in_course * 100) if lessons_in_course > 0 else 0,
+                    'average_quiz_score': average_quiz_score
+                })
+
+            course_data.append({
+                'course': course,
+                'total_students_enrolled': total_students_enrolled,
+                'students_progress': students_progress,
+            })
+        context['course_data'] = course_data
+        return context
